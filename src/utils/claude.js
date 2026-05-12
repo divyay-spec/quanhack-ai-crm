@@ -1,43 +1,41 @@
-const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY
+const API_KEY = import.meta.env.VITE_GROQ_API_KEY
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
-/**
- * Call the Anthropic Claude API.
- * @param {string} userMessage
- * @param {string} systemMessage
- * @returns {Promise<string>} - text response
- */
+
 export async function callClaude(userMessage, systemMessage = '') {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const messages = []
+  if (systemMessage) messages.push({ role: 'system', content: systemMessage })
+  messages.push({ role: 'user', content: userMessage })
+
+  const response = await fetch(GROQ_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': API_KEY,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
+      'Authorization': `Bearer ${API_KEY}`,
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'llama-3.3-70b-versatile',
+      messages,
       max_tokens: 1000,
-      system: systemMessage,
-      messages: [{ role: 'user', content: userMessage }],
+      temperature: 0.7,
     }),
   })
 
   if (!response.ok) {
     const err = await response.json()
-    throw new Error(err?.error?.message || 'Claude API error')
+    throw new Error(err?.error?.message || 'Groq API error')
   }
 
   const data = await response.json()
-  return data.content?.[0]?.text || ''
+  return data.choices?.[0]?.message?.content || ''
 }
 
-/**
- * Call Claude and parse the response as JSON.
- * Strips markdown code fences if present.
- */
+
 export async function callClaudeJSON(userMessage, systemMessage = '') {
   const text = await callClaude(userMessage, systemMessage)
-  const clean = text.replace(/```json|```/g, '').trim()
-  return JSON.parse(clean)
+  console.log('Groq raw response:', text)
+  const clean = text.replace(/```json/gi, '').replace(/```/g, '').trim()
+  const match = clean.match(/(\[[\s\S]*\]|\{[\s\S]*\})/)
+  if (!match) throw new Error('No JSON found in response: ' + clean)
+  return JSON.parse(match[0])
 }
