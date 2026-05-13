@@ -1,6 +1,5 @@
 # AI Lead Generation CRM
 
-> **QuAnHack Internship Final Round Submission**
 > A fully functional AI-powered CRM tool that imports leads, enriches them with AI intelligence, generates personalised cold emails, analyzes reply sentiment, and manages the full sales pipeline.
 
 ---
